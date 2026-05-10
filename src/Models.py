@@ -1,4 +1,3 @@
-import torch
 # from transformers import pipeline
 from sentence_transformers import SentenceTransformer, util
 import fasttext

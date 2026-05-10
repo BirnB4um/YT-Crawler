@@ -1,0 +1,5 @@
+fasttext
+sentence-transformers
+numpy
+beautifulsoup4
+huggingface-hub

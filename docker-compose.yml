@@ -1,0 +1,14 @@
+
+
+services:
+
+  yt-crawler:
+    build: .
+    container_name: yt-crawler
+    image: yt-crawler
+    restart: unless-stopped
+
+    volumes:
+      - ./crawl_results/:/opt/yt-crawler/crawl_results/
+
+      # - ./src/:/opt/yt-crawler/src/ # for DEV

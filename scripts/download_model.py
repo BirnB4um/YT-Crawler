@@ -3,7 +3,7 @@ from huggingface_hub import snapshot_download
 import urllib.request
 import os
 
-base_path = "../data/models/"
+base_path = "/opt/yt-crawler/models/"
 if not os.path.exists(base_path):
     os.makedirs(base_path, exist_ok=True)
 
