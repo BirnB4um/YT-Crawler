@@ -11,7 +11,7 @@ logger = CrawlLogger().logger
 
 class Models(metaclass=SingletonMeta):
 
-    def __init__(self, base_path="../data/models/"):
+    def __init__(self, base_path="/opt/yt-crawler/models/"):
         self.base_path = base_path
         self.language_model = None
         self.music_model = None

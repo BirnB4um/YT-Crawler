@@ -1,5 +1,5 @@
-fasttext
+fasttext-wheel
 sentence-transformers
+huggingface-hub
 numpy
 beautifulsoup4
-huggingface-hub
