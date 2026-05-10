@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Small Videos Gallery</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-color: #f9f9f9;
+            --text-color: #000;
+            --card-bg: #fff;
+            --card-shadow: rgba(0, 0, 0, 0.1);
+
+            /* gap and card info height in px */
+            --gap: 19.2px;                 /* 1.2rem × 16px */
+            --min-card-width: 280px;
+            --card-aspect-ratio: 1.7777778;  /* 16 ÷ 9 */
+            --card-info-height: 112px;     /* increased to prevent text clipping */
+            --scrollbar-margin: 16px;      /* space between cards and scrollbar */
+        }
+
+        body.dark {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --card-shadow: rgba(0, 0, 0, 0.4);
+        }
+
+        .header {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            flex: 0 0 auto;
+            box-sizing: border-box;
+            padding-bottom: 0.5rem;
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .controls-left {
+            flex: 1;
+        }
+
+        .controls-right {
+            flex-shrink: 0;
+        }
+
+        input[type="text"], select {
+            padding: 0.4rem;
+            font-size: 1rem;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body.dark input[type="text"],
+        body.dark select {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--text-color);
+        }
+
+        #result-count {
+            padding-top: 0.5rem;
+            font-weight: bold;
+            font-size: 1rem;
+            flex: 0 0 auto;
+            background-color: var(--bg-color);
+            box-sizing: border-box;
+            padding-left: 0.5rem;
+        }
+
+        .list-wrapper {
+            flex: 1 1 auto;
+            overflow: hidden;
+            box-sizing: border-box;
+            padding: 0 1rem;
+        }
+
+        .video-list {
+            height: 100%;
+            position: relative;
+            width: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background-color: transparent;
+            box-sizing: border-box;
+            padding-right: var(--scrollbar-margin);
+        }
+
+        .spacer {
+            width: 1px;
+            opacity: 0;
+        }
+
+        .item-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+
+        .video-item {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 2px 6px var(--card-shadow);
+            text-decoration: none;
+            color: inherit;
+            overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        .video-index {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            font-size: 0.75rem;
+            padding: 2px 5px;
+            border-radius: 3px;
+            z-index: 1;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .thumbnail-wrapper {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: calc(100% / var(--card-aspect-ratio));
+        }
+
+        .video-length-overlay {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 2px 5px;
+            font-size: 0.75rem;
+            border-radius: 3px;
+            font-weight: bold;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .thumbnail-wrapper img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-info {
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            height: var(--card-info-height);
+            box-sizing: border-box;
+        }
+
+        .video-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-color);
+        }
+
+        .video-channel {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            margin-bottom: 0.3rem;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .video-meta {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .video-score {
+            font-size: 0.75rem;
+            color: var(--text-color);
+            margin-top: 0.4rem;
+        }
+
+        .dark-toggle {
+            cursor: pointer;
+            padding: 0.4rem 0.8rem;
+            background-color: #fff;
+            border: 1px solid var(--text-color);
+            border-radius: 6px;
+            color: #000;
+            font-size: 0.9rem;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark .dark-toggle {
+            background-color: var(--text-color);
+            color: var(--card-bg);
+            border-color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="controls-left">
+            <div class="title">Small Videos Gallery</div>
+            <input type="text" id="search-input" placeholder="Search..." />
+            <select id="search-type">
+                <option value="title">Title</option>
+                <option value="channel">Channel</option>
+            </select>
+        </div>
+        <div class="controls-right controls">
+            <label for="filter-history">History:</label>
+            <select id="filter-history">
+                <option value="all">All</option>
+                <option value="in_history">Only History</option>
+                <option value="not_in_history">Exclude History</option>
+            </select>
+
+            <label for="sort">Sort:</label>
+            <select id="sort">
+                <option value="default">Order</option>
+                <option value="default-rev">Order reverse</option>
+                <option value="random">Random order</option>
+                <option value="views-desc">Views ↓</option>
+                <option value="views-asc">Views ↑</option>
+                <option value="length-desc">Length ↓</option>
+                <option value="length-asc">Length ↑</option>
+                <option value="uploaded-desc">Uploaded ↓</option>
+                <option value="uploaded-asc">Uploaded ↑</option>
+                <option value="title-asc">Title A–Z</option>
+                <option value="title-desc">Title Z–A</option>
+                <option value="total_score-desc">Score ↓</option>
+                <option value="total_score-asc">Score ↑</option>
+            </select>
+
+            <button class="dark-toggle" id="toggle-dark">🌓</button>
+        </div>
+    </div>
+
+    <div id="result-count"></div>
+
+    <div class="list-wrapper">
+        <div class="video-list" id="video-list">
+            <div class="spacer" id="spacer"></div>
+            <div class="item-container" id="item-container"></div>
+        </div>
+    </div>
+
+<script>
+    const videoList = document.getElementById('video-list');
+    const spacer = document.getElementById('spacer');
+    const itemContainer = document.getElementById('item-container');
+    const sortSelect = document.getElementById('sort');
+    const filterHistorySelect = document.getElementById('filter-history');
+    const searchInput = document.getElementById('search-input');
+    const searchTypeSelect = document.getElementById('search-type');
+    const resultCount = document.getElementById('result-count');
+
+    const cs = getComputedStyle(document.documentElement);
+    const GAP = parseFloat(cs.getPropertyValue('--gap'));
+    const MIN_CARD_WIDTH = parseFloat(cs.getPropertyValue('--min-card-width'));
+    const CARD_ASPECT_RATIO = parseFloat(cs.getPropertyValue('--card-aspect-ratio'));
+    const CARD_INFO_HEIGHT = parseFloat(cs.getPropertyValue('--card-info-height'));
+    const SCROLLBAR_MARGIN = parseFloat(cs.getPropertyValue('--scrollbar-margin'));
+
+    let allVideos = %VIDEO_DATA%;
+    let filteredVideos = [];
+    let columns = 1;
+    let cardWidth = MIN_CARD_WIDTH;
+    let cardHeight = 0;
+    let totalRows = 0;
+    let totalHeight = 0;
+
+    const darkBtn = document.getElementById('toggle-dark');
+    darkBtn.addEventListener('click', () => {
+        document.body.classList.toggle('dark');
+        localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+    });
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark');
+    }
+
+    function formatViews(views) {
+        if (views == null) return "Unknown views";
+        return views.toLocaleString() + " views";
+    }
+
+    function formatLength(seconds) {
+        if (!seconds) return "Unknown length";
+        seconds = Number(seconds);
+        if (seconds < 3600) {
+            return new Date(seconds * 1000).toISOString().substr(14, 5);
+        }
+        return new Date(seconds * 1000).toISOString().substr(11, 8);
+    }
+
+    function calculateLayout() {
+        const styleVL = getComputedStyle(videoList);
+        const paddingRight = parseFloat(styleVL.paddingRight);
+        const containerWidth = videoList.clientWidth - paddingRight;
+        const usableWidth = containerWidth - SCROLLBAR_MARGIN;
+        columns = Math.floor(usableWidth / (MIN_CARD_WIDTH + GAP));
+        if (columns < 1) columns = 1;
+
+        cardWidth = (usableWidth - (columns - 1) * GAP) / columns;
+        cardHeight = (cardWidth / CARD_ASPECT_RATIO) + CARD_INFO_HEIGHT;
+        totalRows = Math.ceil(filteredVideos.length / columns);
+        totalHeight = (totalRows * cardHeight) + ((totalRows - 1) * GAP);
+        spacer.style.height = totalHeight + 'px';
+    }
+
+    function renderVisibleItems() {
+        itemContainer.innerHTML = '';
+        const scrollTop = videoList.scrollTop;
+        const viewportHeight = videoList.clientHeight;
+        const startRow = Math.floor(scrollTop / (cardHeight + GAP));
+        const endRow = Math.ceil((scrollTop + viewportHeight) / (cardHeight + GAP));
+        const buffer = 2;
+        const renderStartRow = Math.max(0, startRow - buffer);
+        const renderEndRow = Math.min(totalRows, endRow + buffer);
+
+        for (let row = renderStartRow; row < renderEndRow; row++) {
+            for (let col = 0; col < columns; col++) {
+                const index = row * columns + col;
+                if (index >= filteredVideos.length) break;
+                const video = filteredVideos[index];
+                const top = row * (cardHeight + GAP);
+                const left = col * (cardWidth + GAP);
+
+                const a = document.createElement("a");
+                a.className = "video-item";
+                a.href = `https://www.youtube.com/watch?v=${video.id}`;
+                a.target = "_blank";
+                a.dataset.views = video.views || 0;
+                a.dataset.length = video.length || 0;
+                a.dataset.title = (video.title || "").toLowerCase();
+                a.dataset.channel = (video.channel || "").toLowerCase();
+                a.dataset.uploaded = (video.uploaded || "").toLowerCase();
+                a.dataset.uploaded_ts = video.uploaded_ts || 0;
+                a.dataset.total_score = video.total_score || 0;
+                a.dataset.in_history = video.in_history ? "true" : "false";
+                a.dataset.idx = video.idx != null ? video.idx : 0;
+
+                a.style.top = top + 'px';
+                a.style.left = left + 'px';
+                a.style.width = cardWidth + 'px';
+                a.style.height = cardHeight + 'px';
+
+                // Index badge
+                const idxDiv = document.createElement("div");
+                idxDiv.className = "video-index";
+                idxDiv.textContent = (video.idx != null ? video.idx : index + 1);
+                a.appendChild(idxDiv);
+
+                const scoreEmoji = video.in_history ? "📌 " : "";
+                const channel = video.channel || "Unknown channel";
+
+                const thumbWrapper = document.createElement("div");
+                thumbWrapper.className = "thumbnail-wrapper";
+                const img = document.createElement("img");
+                img.src = `https://img.youtube.com/vi/${video.id}/default.jpg`;
+                img.dataset.src = `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`;
+                img.loading = "lazy";
+                img.alt = "Thumbnail";
+                thumbWrapper.appendChild(img);
+                
+
+                const lengthOverlay = document.createElement("div");
+                lengthOverlay.className = "video-length-overlay";
+                lengthOverlay.textContent = formatLength(video.length);
+                thumbWrapper.appendChild(lengthOverlay);
+                a.appendChild(thumbWrapper);
+
+                const infoDiv = document.createElement("div");
+                infoDiv.className = "video-info";
+                infoDiv.innerHTML = `
+                    <div class="video-title" title="${video.title}">${video.title}</div>
+                    <div class="video-channel" title="${channel}">${channel}</div>
+                    <div class="video-meta">${formatViews(video.views)} • ${video.uploaded}</div>
+                    <div class="video-score">${scoreEmoji}Score: ${video.total_score.toFixed(3)}</div>
+                `;
+                a.appendChild(infoDiv);
+
+                itemContainer.appendChild(a);
+            }
+        }
+
+        itemContainer.querySelectorAll("img[data-src]").forEach(img => {
+            const rect = img.getBoundingClientRect();
+            if (rect.top < window.innerHeight + 200) {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+            }
+        });
+    }
+
+    function applyFiltersAndSort() {
+        const searchText = searchInput.value.toLowerCase();
+        const searchType = searchTypeSelect.value;
+        const filterVal = filterHistorySelect.value;
+
+        filteredVideos = allVideos.filter(video => {
+            if (filterVal === "in_history" && !video.in_history) return false;
+            if (filterVal === "not_in_history" && video.in_history) return false;
+            const field = (video[searchType] || "").toLowerCase();
+            if (searchText && !field.includes(searchText)) return false;
+            return true;
+        });
+
+        const sortVal = sortSelect.value;
+        if (sortVal === "random") {
+            for (let i = filteredVideos.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [filteredVideos[i], filteredVideos[j]] = [filteredVideos[j], filteredVideos[i]];
+            }
+        } else {
+            filteredVideos.sort((a, b) => {
+                switch (sortVal) {
+                    case "default": return (a.idx || 0) - (b.idx || 0);
+                    case "default-rev": return (b.idx || 0) - (a.idx || 0);
+                    case "views-desc": return (b.views || 0) - (a.views || 0);
+                    case "views-asc": return (a.views || 0) - (b.views || 0);
+                    case "length-desc": return (b.length || 0) - (a.length || 0);
+                    case "length-asc": return (a.length || 0) - (b.length || 0);
+                    case "uploaded-desc": return (a.uploaded_ts || 0) - (b.uploaded_ts || 0);
+                    case "uploaded-asc": return (b.uploaded_ts || 0) - (a.uploaded_ts || 0);
+                    case "title-asc": return a.title.localeCompare(b.title);
+                    case "title-desc": return b.title.localeCompare(a.title);
+                    case "total_score-desc": return (b.total_score || 0) - (a.total_score || 0);
+                    case "total_score-asc": return (a.total_score || 0) - (b.total_score || 0);
+                }
+                return 0;
+            });
+        }
+
+        resultCount.textContent = `${filteredVideos.length} results`;
+        calculateLayout();
+        renderVisibleItems();
+    }
+
+    window.addEventListener('resize', () => {
+        calculateLayout();
+        renderVisibleItems();
+    });
+
+    videoList.addEventListener('scroll', () => {
+        renderVisibleItems();
+    });
+
+    searchInput.addEventListener('input', applyFiltersAndSort);
+    searchTypeSelect.addEventListener('change', applyFiltersAndSort);
+    filterHistorySelect.addEventListener('change', applyFiltersAndSort);
+    sortSelect.addEventListener('change', applyFiltersAndSort);
+
+    applyFiltersAndSort();
+</script>
+</body>
+</html>
